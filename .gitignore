@@ -1,0 +1,9 @@
+salidas/
+Datos/
+Shapefile/
+CHIRPS/
+CHIRTS/
+*.jpg
+*.jpeg
+.RData
+.Rhistory

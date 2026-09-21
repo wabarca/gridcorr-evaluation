@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gridcorr-evaluation"
+version = "1.0.0"
+description = "Plataforma científica para la evaluación, validación y corrección de productos satelitales CHIRPS y CHIRTS con datos de estaciones meteorológicas."
+readme = "README.md"
+authors = [
+    { name = "William Abarca", email = "wabarca@ambiente.gob.sv" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.10"
+keywords = ["climatology", "meteorology", "chirps", "chirts", "cdt", "cartopy", "spatial-analysis", "el-salvador", "marn"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+
+dependencies = [
+    "numpy>=1.23.0",
+    "pandas>=1.5.0",
+    "scipy>=1.9.0",
+    "netCDF4>=1.6.0",
+    "xarray>=2022.06.0",
+    "matplotlib>=3.6.0",
+    "cartopy>=0.21.0",
+    "adjustText>=0.8.0",
+    "streamlit>=1.25.0",
+    "pydantic>=2.0.0",
+    "rich>=13.0.0",
+    "python-dotenv>=1.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "flake8>=6.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0"
+]
+
+[project.scripts]
+gridcorr = "src.cli:parse_args_and_run"
+chirpts-app = "src.gui.app:main"
+
+[project.urls]
+"Homepage" = "https://github.com/wabarca/gridcorr-evaluation"
+"Documentation" = "https://github.com/wabarca/gridcorr-evaluation/tree/main/docs"
+"Repository" = "https://github.com/wabarca/gridcorr-evaluation.git"
+"Bug Tracker" = "https://github.com/wabarca/gridcorr-evaluation/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100

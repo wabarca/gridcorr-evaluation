@@ -2,9 +2,11 @@ DATA/
 salidas/
 Datos/
 Shapefile/
+gridcorr_evaluation.egg-info/
 CHIRPS/
 CHIRTS/
 *.jpg
 *.jpeg
+*.png
 .RData
 .Rhistory

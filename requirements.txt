@@ -5,3 +5,5 @@ matplotlib
 cartopy
 netCDF4
 adjustText
+streamlit
+pytest

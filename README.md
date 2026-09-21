@@ -1,575 +1,349 @@
-# CHIRTS Evaluation & Visualization Toolkit
+# CHIRTS & CHIRPS Evaluation & Visualization Platform
 
-#### ✍️ Autor:
-
-- William Abarca
-- Contacto: abarca.will@gmail.com
-
----
-
-Herramienta en Python para la **evaluación, comparación y visualización** de rejillas CHIRTS original vs CHIRTS corregido usando datos diarios de observación.
-
-El flujo permite:
-
-- Generar mapas climatológicos y diarios.
-- Calcular métricas de desempeño (Bias, MAE, RMSE).
-- Analizar mejoras espaciales y por estación.
-- Construir series diarias completas y climatologías DOY (día del año).
-- Producir gráficos comparativos consistentes y listos para informes técnicos.
+#### ✍️ Autor y Desarrollador:
+- **William Abarca**
+- **Afiliación**: Gerencia de Meteorología, Observatorio de Amenazas y Recursos Naturales, Ministerio de Medio Ambiente y Recursos Naturales (MARN), El Salvador
+- **Contacto**: abarca.will@gmail.com
 
 ---
 
-## 📌 Características principales
+Plataforma integral en Python para la **evaluación, comparación, diagnóstico y visualización** de productos grillados climatológicos (**CHIRTS** para temperatura y **CHIRPS** para precipitación) en su versión original vs. versión corregida mediante la metodología CDT (*Climate Data Tool*), utilizando observaciones meteorológicas terrestres.
 
-- Comparación **lado a lado**: CHIRTS original vs CHIRTS corregido.
-- Mapas de:
-  - Campo ΔGRID = Corregido − Original
-  - ΔGRID en estaciones
-  - Mejora por estación
-- Evaluación diaria completa:
-  - Serie temporal por estación
-  - Resúmenes globales y por estación
-- Climatología DOY (dia del año) por estación:
-  - Media, máximo y mínimo diario climatológico
-  - Panel simple y 3-panel (max / mean / min)
-- Estilo gráfico:
-  - Relieve (hillshade) desde DEM
-- Soporte de periodos:
-  - Anual
-  - Diario
-  - Estaciones climáticas (DJFM, A, MJJ, ASO, N)
-  - Meses específicos
+La plataforma cuenta con una **interfaz gráfica web moderna e interactiva en Streamlit** y una **interfaz de línea de comandos (CLI)** retrocompatible sobre una arquitectura modular por capas.
 
 ---
 
-## 📂 Estructura de entradas
+## 📌 Características Principales
 
-### 1) CSV de estaciones (formato CDT)
-
-- Fila 1: IDs de estaciones
-- Fila 2: Longitudes
-- Fila 3: Latitudes
-- Fila 4: Elevaciones
-- Filas siguientes:
-  `YYYYMMDD, val_est1, val_est2, ...`
-
-Ejemplo de columnas internas tras parseo:
-
-- `date` (YYYYMMDD)
-- `station_id`
-- `lon`, `lat`, `elev`
-- `<var>_station` (ej. `tmax_station`)
-
----
-
-### 2) CHIRTS original (NetCDF diarios)
-
-Archivos tipo:
-
-`{prefix}_YYYYMMDD.nc`
-
-Ejemplo:
-
-`temp_19910101.nc`
+- **Interfaz Gráfica Web Interactiva**:
+  - Configuración visual de parámetros, variables y fechas.
+  - Preajustes (*presets*) de datos de ejemplo locales para pruebas rápidas.
+  - Validación previa inteligente de rutas y compatibilidad de archivos.
+  - Barra de progreso con logs en tiempo real.
+  - Visores interactivos de mapas cartográficos lado a lado con relieve DEM (*hillshade*).
+  - Explorador dinámico de ciclos climatológicos diarios (**DOY 1–365**) por estación en panel simple y tri-panel ($\text{max} / \text{mean} / \text{min}$) con envolventes $\pm 1\sigma$.
+  - Tablas de métricas y rankings ordenados por mejora en error cuadrático medio ($\Delta\text{RMSE}$).
+  - Centro de descargas para imágenes individuales, tablas CSV y paquetes ZIP completos.
+- **Preservación Científica**:
+  - Cálculos matemáticos vectorizados y estrictos de *Bias*, *MAE*, *RMSE*, *Pearson $R$*, $\Delta\text{RMSE}$ y porcentaje de mejora ($\%\text{ Mejora}$).
+  - Manejo riguroso de datos faltantes (`-99`, `NA`, `NaN`) y conteo de días válidos.
+  - Extracción en coordenadas de estaciones mediante vecino más cercano (*nearest-neighbor*).
+- **Múltiples Modos de Operación**:
+  - `annual`: Mapas y estadísticas anuales con diagnóstico global y por año.
+  - `daily`: Mapa y comparación para una fecha específica (`YYYY-MM-DD`).
+  - `daily-eval`: Construcción paralela de series diarias completas multianuales y climatología DOY.
+  - `period`: Análisis por temporadas climáticas del Foro del Clima Centroamericano (`DJFM`, `A`, `MJJ`, `ASO`, `N`) o meses específicos.
 
 ---
 
-### 3) CHIRTS corregido (NetCDF diarios)
+## 🏛️ Arquitectura del Sistema
 
-Archivos tipo:
-
-`*_mrg_YYYYMMDD.nc`
-
-Ejemplo:
-
-`tmax_mrg_19910101.nc`, `tmin_mrg_19910101.nc`, `temp_mrg_19910101.nc`
-
----
-
-### 4) DEM (NetCDF)
-
-- Un campo de elevación con coordenadas lat/lon
-- Usado para generar hillshade en los mapas
-
----
-
-## ⚙️ Instalación del entorno
-
-### Opción A: conda / mamba (recomendado)
-
-```bash
-conda create -n chirpts-evaluation python=3.10
-conda activate chirpts-evaluation
-pip install -r requirements.txt
+```
+┌────────────────────────────────────────────────────────┐
+│                   GUI (Streamlit)                      │
+│        (app.py / src/gui/components/...)               │
+└───────────────────────────┬────────────────────────────┘
+                            │ (AnalysisRequest)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                  Application Layer                     │
+│    (src/application/models.py, validators.py, services)│
+└───────────┬───────────────────────────────┬────────────┘
+            │                               │
+            ▼                               ▼
+┌──────────────────────────┐    ┌────────────────────────┐
+│     Scientific Core      │    │     Data / IO Layer    │
+│  - src/core/metrics.py   │    │  - src/io/cdt_parser.py│
+│  - src/core/spatial.py   │    │  - src/io/netcdf_loader│
+│  - src/core/climatology  │    │  - src/io/exporters.py │
+└───────────┬──────────────┘    └────────────────────────┘
+            ▼
+┌──────────────────────────┐
+│   Visualization Layer    │
+│  - src/visualization/maps│
+│  - src/visualization/plot│
+└──────────────────────────┘
 ```
 
-O con `mamba`:
+---
+
+## ⚙️ Guía Rápida de Instalación
+
+Para instrucciones completas y detalladas por sistema operativo, consulte [docs/INSTALLATION.md](file:///docs/INSTALLATION.md).
+
+### 1. Requisitos Previos
+
+- **Python**: Versión 3.10, 3.11 o 3.12.
+- **Git**: Para clonar el repositorio.
+
+---
+
+### 2. Métodos de Instalación
+
+#### Opción A: Con Conda o Mamba (Recomendado para Windows / Escritorio)
+
+Conda gestiona de forma automática las bibliotecas binarias C/C++ de Cartopy, GEOS y PROJ:
 
 ```bash
-mamba create -n chirpts-evaluation python=3.10
-mamba activate chirpts-evaluation
-pip install -r requirements.txt
-```
+# 1. Clonar el repositorio
+git clone https://github.com/wabarca/gridcorr-evaluation.git
+cd gridcorr-evaluation
 
-### Opción B: environment.yml
-
-```bash
+# 2. Crear y activar el entorno virtual
 conda env create -f environment.yml
 conda activate chirpts-evaluation
+
+# 3. Instalar el paquete en modo editable con herramientas de desarrollo
+pip install -e ".[dev]"
+```
+
+*Nota: Con `mamba` el proceso de resolución de paquetes es más rápido:*
+```bash
+mamba env create -f environment.yml
+mamba activate chirpts-evaluation
+pip install -e ".[dev]"
 ```
 
 ---
 
-## ▶️ Modos de ejecución
+#### Opción B: Con Python `venv` y `pip` (Linux / macOS / WSL)
 
-Ejecuta:
-
+**Paso previo en Ubuntu / Debian**: Instalar bibliotecas de sistema requeridas para Cartopy y NetCDF:
 ```bash
-python mapas_acumulados_chirts_anuales.py --help
+sudo apt-get update && sudo apt-get install -y \
+    python3-venv python3-pip \
+    libgeos-dev libproj-dev proj-data proj-bin libnetcdf-dev libhdf5-dev
 ```
 
-para ver todas las opciones:
-
+**Instalación del entorno Python**:
 ```bash
-    Parámetros de entrada (CLI)
-    ---------------------------
-    --csv            : Archivo CDT con observaciones en estaciones.
-    --dir-chirts     : Directorio con NetCDF diarios/anuales de CHIRTS original.
-    --prefix-chirts  : Prefijo de archivos CHIRTS originales (default: "temp_").
-    --dir-merged     : Directorio con NetCDF de CHIRTS corregido.
-    --var            : Variable a procesar ("tmax" o "tmin").
-    --stat           : Estadístico ("mean", "max", "min" o "all").
-    --dem            : NetCDF con el modelo digital de elevación (DEM).
-    --out            : Directorio base de salida.
-    --yini, --yend   : Rango de años para modos annual/period.
-    --extent         : Extensión geográfica (xmin xmax ymin ymax).
-    --mode           : Modo de operación ("annual", "daily", "daily-eval", "period").
-    --period-type    : Tipo de período ("season" o "months") para modo period.
-    --season         : Temporada (DJFM, A, MJJ, ASO, N).
-    --months         : Lista de meses (ej: "5,6,7") para modo period.
-    --all-seasons    : Procesa todas las temporadas definidas.
-    --eval           : (opcional) Activa productos de evaluación estadística.
-    --date           : Fecha específica para modo daily (YYYY-MM-DD).
+# 1. Crear el entorno virtual
+python3 -m venv .venv
+
+# 2. Activar el entorno
+# En Linux/macOS:
+source .venv/bin/activate
+# En Windows (PowerShell):
+.\.venv\Scripts\Activate.ps1
+
+# 3. Actualizar herramientas base
+pip install --upgrade pip setuptools wheel
+
+# 4. Instalar dependencias del proyecto
+pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
-**Flujo general**
+---
 
-1. Parseo de argumentos y validación básica.
-2. Lectura del CSV de estaciones y preparación del DataFrame largo.
-3. Carga del DEM.
-4. Enrutamiento según el modo seleccionado:
-   - `daily-eval`
-   - `daily`
-   - `period`
-   - `annual` (por defecto)
-5. Generación de productos operativos (mapas, CSV).
-6. Si `--eval` está activo, generación de productos de evaluación estadística.
+#### Opción C: Con Docker y Docker Compose (Sin configurar dependencias locales)
 
-### A) Modo ANUAL (default)
-
-Para cada estadística (mean/max/min):
-
-- Recorre los años `[yini, yend]`
-- Genera mapas side-by-side (raw vs corregido)
-- Genera mapas ΔGRID por año (campo completo)
-- Exporta CSV de comparación en estaciones por año
-- Acumula ΔGRID para construir un ΔGRID GLOBAL (promedio temporal)
-
-Si `--eval` está activo, además:
-
-- Construye productos de evaluación GLOBAL y por AÑO:
-- CSV global por estación
-- Mapas ΔGRID en estaciones (global)
-- CSV y mapas de mejora (ΔRMSE)
-- Métricas anuales (Bias, MAE, RMSE, R)
-- Gráficos: RMSE temporal, boxplots, scatter
-- Rankings por estación (global y por año)
-
-**Ejecución:**
-
-En la terminal **(en Windows puede ser necesario escribir todo en una sola línea, sin \\ )** ejecuta:
+Si cuenta con Docker Desktop o Docker Engine:
 
 ```bash
-python mapas_acumulados_chirts_anuales.py \
-  --csv estaciones_tmax_formato_cdt.csv \
-  --dir-chirts /datos/CHIRTS/CDT_NetCDF_Format/ \
-  --dir-merged /datos/CHIRTS/MERGED_TEMP_Data_1Jan1991_31Dec2020/DATA/ \
-  --var tmax \
-  --stat max | mean | min | all \
-  --mode annual \
-  --dem dem.nc \
+# 1. Clonar el repositorio
+git clone https://github.com/wabarca/gridcorr-evaluation.git
+cd gridcorr-evaluation
+
+# 2. Levantar la aplicación web con Docker Compose
+docker compose up -d --build
+```
+La aplicación web estará disponible inmediatamente en `http://localhost:8501`.
+
+---
+
+### 3. Verificación de la Instalación
+
+Compruebe que la instalación fue exitosa ejecutando las pruebas automatizadas y el comando CLI:
+
+```bash
+# Ejecutar suite de pruebas unitarias y científicas (12 tests)
+pytest -v
+
+# Verificar la CLI del sistema
+gridcorr --help
+```
+
+
+---
+
+## ▶️ Ejecución
+
+### 1. Interfaz Gráfica (Streamlit)
+
+Para iniciar el dashboard interactivo en su navegador web:
+
+```bash
+streamlit run app.py
+```
+
+Acceda a `http://localhost:8501`. Desde el panel lateral izquierdo puede seleccionar los datos de prueba o ingresar sus propias rutas, validar los datos y ejecutar el análisis.
+
+---
+
+### 2. Línea de Comandos (CLI)
+
+Los scripts originales continúan funcionando exactamente igual sobre la nueva arquitectura modular:
+
+#### A) Evaluación de CHIRPS (Precipitación acumulada anual)
+```bash
+python mapas_acumulados_chirps_anuales.py \
+  --csv DATA/centroamerica/datos/station_data/lluvia_formato_cdt_elsalvador.csv \
+  --dir-chirps DATA/centroamerica/cdt_original_data/CHIRPSv2_CDT_NetCDF_Format \
+  --dir-merged DATA/centroamerica/cdt_corrected_data/CHIRPSv2_pr_MERGED_RAIN_Data_1ene1991_31dic2020/DATA \
   --yini 1991 \
   --yend 2020 \
-  --out ./salidas
-  --eval (opcional)
+  --out ./salidas_chirps \
+  --export-csv
 ```
 
-### B) Modo DIARIO (mapa para una fecha específica, es obligatorio el parámetro --date YYYY-MM-DD):
-
-Genera productos para UNA fecha específica `YYYY-MM-DD`:
-Productos principales:
-
-- Mapa side-by-side: CHIRTS original vs CHIRTS corregido
-- CSV de comparación en estaciones (obs, raw, corr, errores)
-  Productos de diagnóstico (evaluación diaria):
-- Mapa de CAMPO `ΔGRID = corr - raw`
-- Mapa de `ΔGRID` en estaciones
-- Copia del CSV de comparación en carpeta de evaluación
-- **Este modo es puntual (una fecha) y termina la ejecución.**
-
-**Ejecución:**
-
-En la terminal **(en Windows puede ser necesario escribir todo en una sola línea, sin \\ )** ejecuta:
-
+#### B) Evaluación de CHIRTS (Temperatura: Anual con Evaluación Estadística)
 ```bash
-
 python mapas_acumulados_chirts_anuales.py \
-  --csv estaciones_tmax_formato_cdt.csv \
-  --dir-chirts /datos/CHIRTS/CDT_NetCDF_Format/ \
-  --dir-merged /datos/CHIRTS/MERGED_TEMP_Data_1Jan1991_31Dec2020/DATA/ \
+  --csv DATA/centroamerica/datos/station_data/tmax_formato_cdt_elsalvador.csv \
+  --dir-chirts DATA/centroamerica/cdt_original_data/CHIRTS_TMax_CDT_NetCDF_Format \
+  --dir-merged DATA/centroamerica/cdt_corrected_data/CHIRTS_tmax_MERGED_TEMP_Data_1ene1991_31dic2020/DATA \
   --var tmax \
-  --stat max | mean | min | all \
-  --mode daily \
-  --dem elevacion.nc \
-  --date 1991-01-01 \
-  --out ./salidas
-  --eval (opcional)
+  --stat mean \
+  --dem DATA/centroamerica/datos/dem/gebco_2024_el_salvador.nc \
+  --mode annual \
+  --yini 1991 \
+  --yend 2020 \
+  --out ./salidas_chirts \
+  --eval
 ```
 
-### C) Modo `daily-eval` (evaluación diaria completa en serie temporal):
-
-Construye la serie diaria completa de estaciones vs rejilla
-para todos los años disponibles y genera resúmenes estadísticos.
-Flujo:
-
-1. Identifica los años presentes en el CSV de estaciones.
-2. Procesa cada año en paralelo para construir la serie diaria:
-   - Para cada día y estación: `obs`, `raw` y `corr`.
-3. Concatena todos los años en un único DataFrame diario.
-4. Guarda la serie diaria completa a disco completa y por estaciones.
-5. Genera:
-   - Resumen global (Bias, MAE, RMSE) usando todos los datos.
-   - Resumen por estación (Bias, MAE, RMSE) en toda la serie.
-   - Gráficas de las series temporales de climatología de día del año (DOY)
-6. Termina la ejecución (no continúa a otros modos).
-
-**Ejecución:**
-
-En la terminal **(en Windows puede ser necesario escribir todo en una sola línea, sin \\ )** ejecuta:
-
+#### C) Evaluación de CHIRTS Diaria Puntual (`daily`)
 ```bash
 python mapas_acumulados_chirts_anuales.py \
-  --csv estaciones_tmax_formato_cdt.csv \
-  --dir-chirts /datos/CHIRTS/CDT_NetCDF_Format/ \
-  --dir-merged /datos/CHIRTS/MERGED_TEMP_Data_1Jan1991_31Dec2020/DATA/ \
+  --csv DATA/centroamerica/datos/station_data/tmax_formato_cdt_elsalvador.csv \
+  --dir-chirts DATA/centroamerica/cdt_original_data/CHIRTS_TMax_CDT_NetCDF_Format \
+  --dir-merged DATA/centroamerica/cdt_corrected_data/CHIRTS_tmax_MERGED_TEMP_Data_1ene1991_31dic2020/DATA \
+  --var tmax \
+  --stat daily \
+  --dem DATA/centroamerica/datos/dem/gebco_2024_el_salvador.nc \
+  --mode daily \
+  --date 1991-01-01 \
+  --out ./salidas_chirts_daily
+```
+
+#### D) Evaluación CHIRTS Serie Completa y DOY Climatología (`daily-eval`)
+```bash
+python mapas_acumulados_chirts_anuales.py \
+  --csv DATA/centroamerica/datos/station_data/tmax_formato_cdt_elsalvador.csv \
+  --dir-chirts DATA/centroamerica/cdt_original_data/CHIRTS_TMax_CDT_NetCDF_Format \
+  --dir-merged DATA/centroamerica/cdt_corrected_data/CHIRTS_tmax_MERGED_TEMP_Data_1ene1991_31dic2020/DATA \
   --var tmax \
   --mode daily-eval \
-  --out ./salidas
-  --eval (opcional)
+  --out ./salidas_daily_eval
 ```
 
-### D) Modo PERIODO (Estación climática: `DJFM`, `A`, `MJJ`, `ASO`, `N` | mes: 7 o meses especificos: 4,5,6 ):
-
-Genera productos para PERÍODOS definidos por cualquiera de estas opciones:
-
-- Estaciones climáticas definidas por el Foro del Clima Centroamericano (`DJFM`, `A`, `MJJ`, `ASO`, `N`)
-- Mes (ej: `7`) o conjunto de meses (ej: `5,6,7,8,9,10`)
-
-Para cada año, cada período y cada estadística:
-
-- Calcula el campo agregado (`mean`/`max`/`min`)
-- Genera mapa side-by-side (`raw` vs `corregido`)
-- Genera CSV de comparación en estaciones
-- Genera productos de evaluación:
-  - Mapa `ΔGRID` (campo)
-  - Mapa `ΔGRID` en estaciones
-  - CSV de mejora por estación (`RMSE`)
-  - Mapa `ΔRMSE` en estaciones
-    Este modo es multi-año y multi-período, y termina la ejecución.
-
-**Ejecución:**
-
-En la terminal **(en Windows puede ser necesario escribir todo en una sola línea, sin \\ )** ejecuta:
-
-**Para estación climática:**
-
+#### E) Evaluación CHIRTS por Temporadas Climáticas o Meses (`period`)
 ```bash
+# Por temporada (ej. DJFM):
 python mapas_acumulados_chirts_anuales.py \
-  --csv estaciones_tmax_formato_cdt.csv \
-  --dir-chirts /datos/CHIRTS/CDT_NetCDF_Format/ \
-  --dir-merged /datos/CHIRTS/MERGED_TEMP_Data_1Jan1991_31Dec2020/DATA/ \
+  --csv DATA/centroamerica/datos/station_data/tmax_formato_cdt_elsalvador.csv \
+  --dir-chirts DATA/centroamerica/cdt_original_data/CHIRTS_TMax_CDT_NetCDF_Format \
+  --dir-merged DATA/centroamerica/cdt_corrected_data/CHIRTS_tmax_MERGED_TEMP_Data_1ene1991_31dic2020/DATA \
   --var tmax \
-  --stat max | mean | min | all \
+  --stat mean \
+  --dem DATA/centroamerica/datos/dem/gebco_2024_el_salvador.nc \
   --mode period \
   --period-type season \
-  --season DJFM | A | MJJ | ASO | N | --all-seasons \
+  --season DJFM \
   --yini 1991 \
   --yend 2020 \
-  --dem elevacion.nc \
-  --out ./salidas
-  --eval (opcional)
-```
+  --out ./salidas_period \
+  --eval
 
-**Para mes o meses específicos:**
-
-```bash
+# Por meses específicos (ej. mayo, junio, julio):
 python mapas_acumulados_chirts_anuales.py \
-  --csv estaciones_tmax_formato_cdt.csv \
-  --dir-chirts /datos/CHIRTS/CDT_NetCDF_Format/ \
-  --dir-merged /datos/CHIRTS/MERGED_TEMP_Data_1Jan1991_31Dec2020/DATA/ \
+  --csv DATA/centroamerica/datos/station_data/tmax_formato_cdt_elsalvador.csv \
+  --dir-chirts DATA/centroamerica/cdt_original_data/CHIRTS_TMax_CDT_NetCDF_Format \
+  --dir-merged DATA/centroamerica/cdt_corrected_data/CHIRTS_tmax_MERGED_TEMP_Data_1ene1991_31dic2020/DATA \
   --var tmax \
-  --stat max | mean | min | all \
+  --stat mean \
+  --dem DATA/centroamerica/datos/dem/gebco_2024_el_salvador.nc \
   --mode period \
   --period-type months \
-  --months 5,6,7 \ (obligatorio en modo months)
+  --months 5,6,7 \
   --yini 1991 \
   --yend 2020 \
-  --dem elevacion.nc \
-  --out ./salidas
-  --eval (opcional)
+  --out ./salidas_period \
+  --eval
+```
+
+#### F) CLI Unificado
+```bash
+python -m src.cli chirts --help
+python -m src.cli chirps --help
 ```
 
 ---
 
-## 📊 Definición de métricas estadísticas
+## 📊 Métricas Estadísticas Implementadas
 
-Sea:
+Sea $o_i$ el valor observado en estación y $g_i$ el valor en rejilla para el día o período $i$:
 
-- $( o_i )$ el valor observado en la estación para el día $( i )$
-- $( g_i )$ el valor del producto en rejilla (raw o corregido) para el mismo día
-- $( N )$ el número total de pares válidos $(o_i, g_i)$
-
-Definimos el **error** como:
-
-$$
-e_i = g_i - o_i
-$$
-
-### 1) Bias (Sesgo)
-
-El **Bias** mide el error medio con signo:
-
-$$
-\text{Bias} = \frac{1}{N} \sum_{i=1}^{N} (g_i - o_i) = \frac{1}{N} \sum_{i=1}^{N} e_i
-$$
-
-**Interpretación:**
-
-- Bias > 0 → el producto **sobreestima** en promedio.
-- Bias < 0 → el producto **subestima** en promedio.
-- Bias ≈ 0 → no hay sesgo sistemático, pero puede haber errores compensados.
+- **Sesgo (*Bias*)**:
+  $$\text{Bias} = \frac{1}{N} \sum_{i=1}^{N} (g_i - o_i)$$
+- **Error Absoluto Medio (*MAE*)**:
+  $$\text{MAE} = \frac{1}{N} \sum_{i=1}^{N} |g_i - o_i|$$
+- **Raíz del Error Cuadrático Medio (*RMSE*)**:
+  $$\text{RMSE} = \sqrt{\frac{1}{N} \sum_{i=1}^{N} (g_i - o_i)^2}$$
+- **Diferencia de RMSE ($\Delta\text{RMSE}$)**:
+  $$\Delta\text{RMSE} = \text{RMSE}_{\text{raw}} - \text{RMSE}_{\text{corr}}$$
+  *(Valores positivos indican que la corrección redujo el error).*
+- **Mejora Relativa Porcentual ($\%\text{ Mejora}$)**:
+  $$\%\text{ Mejora} = 100 \times \frac{\text{RMSE}_{\text{raw}} - \text{RMSE}_{\text{corr}}}{\text{RMSE}_{\text{raw}}}$$
+- **Coeficiente de Correlación de Pearson ($R$)**:
+  $$R = \frac{\sum (o_i - \bar{o})(g_i - \bar{g})}{\sqrt{\sum (o_i - \bar{o})^2 \sum (g_i - \bar{g})^2}}$$
 
 ---
 
-### 2) MAE (Mean Absolute Error)
+## 🧪 Pruebas Automatizadas
 
-El **MAE** mide la magnitud media del error, sin considerar el signo:
-
-$$
-\text{MAE} = \frac{1}{N} \sum_{i=1}^{N} | g_i - o_i | = \frac{1}{N} \sum_{i=1}^{N} | e_i |
-$$
-
-**Propiedades:**
-
-- Siempre es ≥ 0.
-- Penaliza todos los errores de forma lineal.
-- Es más **robusto** que el RMSE frente a valores extremos.
-
----
-
-### 3) RMSE (Root Mean Square Error)
-
-El **RMSE** penaliza más fuertemente los errores grandes:
-
-$$
-\text{RMSE} = \sqrt{ \frac{1}{N} \sum_{i=1}^{N} (g_i - o_i)^2 } = \sqrt{ \frac{1}{N} \sum_{i=1}^{N} e_i^2 }
-$$
-
-**Propiedades:**
-
-- Siempre es ≥ 0.
-- Da más peso a errores grandes (outliers).
-- Muy usado en verificación meteorológica y climatológica.
-- Sensible a eventos extremos (lo cual es deseable en muchos análisis climáticos).
-
----
-
-### 4) Diferencia de RMSE (ΔRMSE)
-
-Para comparar el producto **original (raw)** y el **corregido (corr)**:
-
-Sea:
-
-- $(\text{RMSE}\_{\text{raw}}$ ) el RMSE del producto original
-- $(\text{RMSE}\_{\text{corr}}$ ) el RMSE del producto corregido
-
-Definimos:
-
-$$
-\Delta \text{RMSE} = \text{RMSE}_{\text{raw}} - \text{RMSE}_{\text{corr}}
-$$
-
-**Interpretación:**
-
-- $(\Delta \text{RMSE} > 0)$ → la corrección **mejora** el producto (reduce el error).
-- $(\Delta \text{RMSE} < 0)$ → la corrección **empeora** el producto.
-- $(\Delta \text{RMSE} = 0)$ → no hay cambio en el error cuadrático medio.
-
----
-
-### 5) Mejora relativa porcentual de RMSE
-
-Para expresar la mejora en términos relativos:
-
-$$
-\text{Mejora} = 100 \times \frac{\text{RMSE}_{\text{raw}} - \text{RMSE}_{\text{corr}}}{\text{RMSE}_{\text{raw}}}
-$$
-
-Es decir:
-
-$$
-\text{Mejora} = 100 \times \frac{\Delta \text{RMSE}}{\text{RMSE}_{\text{raw}}}
-$$
-
-**Interpretación:**
-
-- Valor positivo → reducción porcentual del error gracias a la corrección.
-- Valor negativo → aumento porcentual del error.
-- Ejemplo:
-  - Si $( \text{RMSE}_{\text{raw}} = 4.0 )$ y $( \text{RMSE}_{\text{corr}} = 3.0 )$:
-    $$
-    \text{Mejora} = 100 \times \frac{4.0 - 3.0}{4.0} = 25(\%)
-    $$
-
----
-
-## 📈 Métricas en distintos contextos
-
-### A) Serie diaria completa (modo `daily-eval`)
-
-Se usan **todos los días y todas las estaciones**:
-
-- Bias, MAE, RMSE globales:
-
-$$
-  \text{RMSE}_{\text{global}} = \sqrt{ \frac{1}{N_{\text{total}}} \sum_{i=1}^{N_{\text{total}}} (g_i - o_i)^2 }
-$$
-
-- Por estación:
-  Si una estación ( s ) tiene ( N_s ) datos:
-
-$$
-\text{RMSE}_s = \sqrt{ \frac{1}{N_s} \sum_{i=1}^{N_s} (g_{s,i} - o_{s,i})^2 }
-$$
-
-Esto permite:
-
-- Detectar estaciones problemáticas
-- Construir rankings por desempeño
-- Evaluar espacialmente la calidad del producto
-
----
-
-### B) Períodos (meses o estaciones climáticas)
-
-Para un período $( P )$ (ej. DJFM, MJJ, o meses 5-6-7):
-
-1. Primero se construyen series restringidas al período.
-2. Luego se calculan las métricas exactamente igual que antes, pero usando solo los datos del período:
-
-$$
-\text{RMSE}_{s,P} = \sqrt{ \frac{1}{N_{s,P}} \sum_{i=1}^{N_{s,P}} (g_{s,i} - o_{s,i})^2 }
-$$
-
-Y la mejora porcentual:
-
-$$
-\text{Mejora}_{s, P} = 100 \times \frac{\text{RMSE}_{s,P}^{\text{raw}} - \text{RMSE}_{s,P}^{\text{corr}}}{\text{RMSE}_{s,P}^{\text{raw}}}
-$$
-
----
-
-### C) Climatología DOY (día del año)
-
-Para cada día del año $( d \in [1,365] )$ y una estación $( s )$:
-
-Sea $( x\_{s,d,y} )$ el valor en el año $( y )$.
-
-Se define:
-
-**Media climatológica diaria:**
-
-$$
-\mu_{s,d} = \frac{1}{N_y} \sum_{y=1}^{N_y} x_{s,d,y}
-$$
-
-**Máximo climatológico diario:**
-
-$$
-x^{\max}_{s,d} = \max_{y}(x_{s,d,y})
-$$
-
-**Mínimo climatológico diario:**
-
-$$
-x^{\min}_{s,d} = \min_{y}(x_{s,d,y})
-$$
-
-**Desviación estándar (variabilidad interanual):**
-
-$$
-\sigma_{s,d} = \sqrt{ \frac{1}{N_y} \sum_{y=1}^{N_y} (x_{s,d,y} - \mu_{s,d})^2 }
-$$
-
-En los gráficos:
-
-- La **línea negra** es el observado.
-- Las líneas de color son raw y corregido.
-- El **sombreado ±1σ** muestra la variabilidad interanual del observado.
-
----
-
-## 🗺️ Interpretación de los mapas
-
-### 1) Mapa ΔGRID = Corregido − Original
-
-En cada punto de la rejilla:
-
-$$
-\Delta G(x,y) = G_{\text{corr}}(x,y) - G_{\text{raw}}(x,y)
-$$
-
-- Valores positivos: la corrección incrementa el campo.
-- Valores negativos: la corrección lo reduce.
-- El colormap divergente centrado en 0 permite ver fácilmente dónde y cuánto cambia.
-
----
-
-### 2) Mapa de residuo en estaciones (Corr − Obs)
-
-Para cada estación:
-
-$$
-R_s = G_{\text{corr}, s} - O_s
-$$
-
-- Si $( R_s > 0 )$: el producto corregido sobreestima en esa estación.
-- Si $( R_s < 0 )$: subestima.
-- Permite ver **patrones espaciales de error residual** tras la corrección.
-
----
-
-## 📦 Entorno de ejecución
-
-Se proveen:
-
-- `requirements.txt` para `pip`
-- `environment.yml` para `conda/mamba`
-
-Nombre sugerido del entorno:
+Para ejecutar la suite completa de pruebas unitarias y de regresión científica:
 
 ```bash
-chirpts-evaluation
+pytest -v tests/
 ```
 
+Las pruebas validan:
+- Parseo correcto de metadatos y series temporales en formato CDT.
+- Cálculo exacto de métricas analíticas.
+- Generación y cruce de fechas de temporadas climáticas.
+- Validadores de parámetros de entrada.
+- Equivalencia numérica estricta entre el nuevo *Scientific Core* y las fórmulas científicas originales.
+
 ---
+
+## 🚀 Despliegue (Deployment)
+
+### Despliegue Local o en Servidor Institucional
+
+1. **Configuración de Puerto y Acceso**:
+   Puede configurar el puerto y la visibilidad de red mediante el archivo `.streamlit/config.toml` o por argumentos:
+   ```bash
+   streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+   ```
+
+2. **Variables de Entorno Opcionales**:
+   - `CHIRPTS_OUT_DIR`: Directorio base predeterminado para guardar salidas.
+   - `CHIRPTS_MAX_WORKERS`: Número de procesos paralelos para evaluación multianual (default: 4).
+   - `CHIRPTS_DPI_MAPS`: Resolución DPI para mapas (default: 200).
+   - `CHIRPTS_DPI_PLOTS`: Resolución DPI para gráficos estadísticos (default: 160).
+
+---
+
+## 📖 Documentación Completa
+
+- [Auditoría del Repositorio](file:///docs/REPOSITORY_AUDIT.md): Análisis detallado del código original, entradas, dependencias y deuda técnica resuelta.
+- [Especificación de Arquitectura](file:///docs/ARCHITECTURE.md): Diagrama y especificación de capas de software (GUI, Application, Scientific Core, Data/IO, Visualization).
+- [Plan de Implementación](file:///docs/IMPLEMENTATION_PLAN.md): Fases del proyecto, decisiones técnicas y criterios de calidad.
+- [Guía de Usuario](file:///docs/USER_GUIDE.md): Manual paso a paso con flujos de trabajo detallados para la interfaz gráfica y la CLI.
+- [Entorno de Desarrollo](file:///docs/DEVELOPMENT_ENVIRONMENT.md): Configuración de herramientas, dependencias C/C++ geoespaciales y variables de entorno.
+- [Guía de Instalación](file:///docs/INSTALLATION.md): Procedimientos de instalación detallados para Conda, venv/pip y Docker.
+- [Guía de Despliegue](file:///docs/DEPLOYMENT.md): Opciones para servidores Linux, Systemd, Nginx reverse proxy y entornos de producción.
+- [Manual de Docker](file:///docs/DOCKER.md): Instrucciones para construcción y operación de contenedores con Docker y Docker Compose.
+- [Estrategia de Pruebas](file:///docs/TESTING.md): Protocolo de testing, suites unitarias y validación de regresión científica.

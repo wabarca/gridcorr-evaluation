@@ -1,0 +1,23 @@
+services:
+  gridcorr-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gridcorr_evaluation_app
+    ports:
+      - "8501:8501"
+    environment:
+      - CHIRPTS_DATA_DIR=/app/DATA
+      - CHIRPTS_OUT_DIR=/app/salidas
+      - CHIRPTS_MAX_WORKERS=4
+      - CHIRPTS_DPI_MAPS=300
+    volumes:
+      # Montar los datos climatológicos y la carpeta de salida
+      - ./DATA:/app/DATA:ro
+      - ./salidas:/app/salidas:rw
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

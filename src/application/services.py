@@ -44,6 +44,7 @@ from ..core.metrics import (
     compute_annual_metrics_from_csv,
     compute_station_metrics_global,
     compute_station_metrics_from_csv,
+    compute_all_station_metrics,
     summarize_daily_global,
     summarize_daily_by_station,
 )
@@ -459,7 +460,7 @@ class ChirpsService:
             if png_kge:
                 res.generated_plots.append(png_kge)
         else:
-            res.metrics_df = summary_global
+            res.metrics_df = res.summary_global_df
 
         # Gráficos diagnósticos en estaciones (Boxplot y Scatter global de la serie)
         out_box = os.path.join(out_dir, "boxplot_errors_precip_daily_eval.png")
@@ -1277,7 +1278,7 @@ class ChirtsService:
             if png_kge:
                 res.generated_plots.append(png_kge)
         else:
-            res.metrics_df = summary_global
+            res.metrics_df = res.summary_global_df
 
         # Gráficos diagnósticos en estaciones (Boxplot y Scatter global de la serie)
         out_box = os.path.join(out_dir, f"boxplot_errors_{req.var}_daily_eval.png")
@@ -1753,8 +1754,8 @@ class ChirtsService:
                     progress(pct, step_msg)
                 res.execution_logs.append(_log_msg(step_msg))
 
-                da_raw = load_annual_chirts_raw(req.dir_original, year, req.prefix_original, stat=stat_name)
-                da_corr = load_annual_chirts_corr(req.dir_merged, year, prefix=req.var, stat=stat_name)
+                da_raw = load_annual_temp_stat(req.dir_original, year, req.prefix_original, req.var, stat=stat_name)
+                da_corr = load_annual_temp_stat(req.dir_merged, year, f"{req.var}_mrg_", req.var, stat=stat_name)
 
                 stations_obs_year = annual_station_stat(df_obs_long, year, req.var, stat_name)
 

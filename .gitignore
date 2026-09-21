@@ -10,3 +10,5 @@ CHIRTS/
 *.png
 .RData
 .Rhistory
+.github/
+.pytest_cache/

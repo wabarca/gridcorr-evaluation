@@ -6,6 +6,7 @@ Includes scientific explanations, interpretation guides, and statistical summari
 
 import os
 import glob
+import numpy as np
 import pandas as pd
 import streamlit as st
 from ...application.models import AnalysisResult

@@ -1,6 +1,7 @@
 import os
 import time
 import datetime
+from typing import Optional
 import streamlit as st
 
 from ..application.models import AnalysisRequest, AnalysisResult

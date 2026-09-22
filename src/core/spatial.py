@@ -44,7 +44,13 @@ def load_annual_temp_stat(
     glob_pat = os.path.join(data_dir, f"{prefix}{year}*.nc")
     files = sorted(glob.glob(glob_pat))
     if not files:
-        raise FileNotFoundError(f"No se encontraron archivos con patrón: {glob_pat}")
+        # Fallback de búsqueda si el prefijo difiere ligeramente
+        clean_prefix = prefix.rstrip("_")
+        files = sorted(glob.glob(os.path.join(data_dir, f"{clean_prefix}*{year}*.nc")))
+        if not files:
+            files = sorted(glob.glob(os.path.join(data_dir, f"*{year}*.nc")))
+    if not files:
+        raise FileNotFoundError(f"No se encontraron archivos con patrón: {glob_pat} en '{data_dir}'")
 
     das = []
     for fp in files:
@@ -61,34 +67,51 @@ def load_annual_temp_stat(
 
     da_all = xr.concat(das, dim="time")
 
-    if stat == "mean":
+    stat_lower = stat.lower()
+    if stat_lower in ["mean", "avg"]:
         return da_all.mean("time", skipna=True)
-    elif stat == "max":
+    elif stat_lower == "max":
         return da_all.max("time", skipna=True)
-    elif stat == "min":
+    elif stat_lower == "min":
         return da_all.min("time", skipna=True)
+    elif stat_lower in ["accum", "sum"]:
+        return da_all.sum("time", min_count=1)
     else:
         raise ValueError(f"Estadístico inválido: {stat}. Debe ser 'mean', 'max' o 'min'.")
 
 
 def annual_station_stat(
-    df_obs_long: pd.DataFrame, year: int, stat: str, value_name: str
+    df_obs_long: pd.DataFrame, year: int, var: str, stat: str
 ) -> pd.DataFrame:
     """
     Calcula un estadístico anual de observaciones por estación para temperatura.
+    Soporta argumentos intercambiados (var, stat) o (stat, value_name) para máxima resiliencia.
     """
+    known_stats = ["mean", "avg", "max", "min", "accum", "sum"]
+    if str(var).lower() in known_stats and str(stat).lower() not in known_stats:
+        stat, var = var, stat
+
     sub = df_obs_long[df_obs_long["year"] == year].copy()
+    if sub.empty:
+        raise ValueError(f"No se encontraron observaciones para el año {year} en el archivo de estaciones.")
 
-    if stat == "mean":
-        g = sub.groupby("station_id", as_index=False)[value_name].mean()
-    elif stat == "max":
-        g = sub.groupby("station_id", as_index=False)[value_name].max()
-    elif stat == "min":
-        g = sub.groupby("station_id", as_index=False)[value_name].min()
+    # Detectar la columna de observaciones de la variable
+    candidate_cols = [f"{var}_station", var, f"{str(var).lower()}_station", str(var).lower(), "obs"]
+    obs_col = next((c for c in candidate_cols if c in sub.columns), sub.columns[2])
+
+    stat_lower = str(stat).lower()
+    if stat_lower in ["mean", "avg"]:
+        g = sub.groupby("station_id", as_index=False)[obs_col].mean()
+    elif stat_lower == "max":
+        g = sub.groupby("station_id", as_index=False)[obs_col].max()
+    elif stat_lower == "min":
+        g = sub.groupby("station_id", as_index=False)[obs_col].min()
+    elif stat_lower in ["accum", "sum"]:
+        g = sub.groupby("station_id", as_index=False)[obs_col].sum()
     else:
-        raise ValueError(f"Estadístico inválido: {stat}")
+        raise ValueError(f"Estadístico inválido: {stat}. Debe ser 'mean', 'max' o 'min'.")
 
-    g = g.rename(columns={value_name: "obs"})
+    g = g.rename(columns={obs_col: "obs"})
     st = sub[["station_id", "lon", "lat", "elev"]].drop_duplicates()
     out = g.merge(st, on="station_id", how="left")
     return out[["station_id", "lon", "lat", "elev", "obs"]]

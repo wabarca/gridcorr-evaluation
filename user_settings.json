@@ -1,10 +1,10 @@
 {
   "paths_by_var": {
     "chirts_tmax": {
-      "csv_path": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\centroamerica\\datos\\station_data\\tmax_formato_cdt_elsalvador.csv",
-      "dir_original": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\centroamerica\\cdt_original_data\\CHIRTS_TMax_CDT_NetCDF_Format",
-      "dir_merged": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\centroamerica\\cdt_corrected_data\\CHIRTS_tmax_MERGED_TEMP_Data_1ene1991_31dic2020\\DATA",
-      "dem_path": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\centroamerica\\datos\\dem\\gebco_2024.nc",
+      "csv_path": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\el_salvador\\Datos\\station_data\\tmin_formato_cdt_elsalvador.csv",
+      "dir_original": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\el_salvador\\CHIRTS\\Tmin\\CDT_NetCDF_Format",
+      "dir_merged": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\el_salvador\\CHIRTS\\Tmin\\MERGED_TEMP_Data_1Jan1991_31Dec2020\\DATA",
+      "dem_path": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\el_salvador\\Datos\\dem\\gebco_2024_el_salvador.nc",
       "out_dir": "./salidas"
     },
     "chirps_precip": {
@@ -13,12 +13,19 @@
       "dir_merged": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\el_salvador\\CHIRPSv2\\MERGED_RAIN_Data_1Jan1991_31Dec2020\\DATA",
       "dem_path": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\el_salvador\\Datos\\dem\\gebco_2024_el_salvador.nc",
       "out_dir": "./salidas"
+    },
+    "chirts_tmin": {
+      "csv_path": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\el_salvador\\Datos\\station_data\\tmin_formato_cdt_elsalvador.csv",
+      "dir_original": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\el_salvador\\CHIRTS\\Tmin\\CDT_NetCDF_Format",
+      "dir_merged": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\el_salvador\\CHIRTS\\Tmin\\MERGED_TEMP_Data_1Jan1991_31Dec2020\\DATA",
+      "dem_path": "C:\\Users\\wabarca\\OneDrive\\Workspace\\climate\\cdt\\2026\\DATA\\el_salvador\\Datos\\dem\\gebco_2024_el_salvador.nc",
+      "out_dir": "./salidas"
     }
   },
-  "last_product": "chirps",
-  "last_var": "precip",
-  "last_mode": "daily-eval",
-  "yini": 1991,
-  "yend": 2020,
+  "last_product": "chirts",
+  "last_var": "tmin",
+  "last_mode": "annual",
+  "yini": 2015,
+  "yend": 2016,
   "out_dir": "./salidas"
 }
